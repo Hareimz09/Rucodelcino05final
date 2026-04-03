@@ -18,7 +18,7 @@
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {% for work in gallery_items %}
                 <article id="gallery-work-{{ work.id }}" class="app-card overflow-hidden flex flex-col">
-                    <div class="w-full h-80 overflow-hidden bg-slate-100">
+                    <div class="w-full h-96 overflow-hidden bg-slate-100">
                         <img
                             src="{{ work.result_image.url }}"
                             alt="{{ work.gallery_title_display }}"

@@ -11,6 +11,13 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 try:
+    import pillow_heif  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    pillow_heif = None
+else:  # pragma: no cover - import side effect
+    pillow_heif.register_heif_opener()
+
+try:
     import cv2  # type: ignore
 except Exception:  # pragma: no cover - optional dependency
     cv2 = None
@@ -825,9 +832,22 @@ def encode_png_data_url(image_bytes: bytes) -> str:
     return f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
 
 
-
 MAX_DATA_URL_BYTES = 8 * 1024 * 1024
-ALLOWED_DATA_URL_MIME_TYPES = {"image/png", "image/jpeg", "image/webp"}
+ALLOWED_OUTPUT_IMAGE_FORMATS = {"PNG", "JPEG"}
+ALLOWED_INPUT_DATA_URL_MIME_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+    "image/avif",
+    "image/gif",
+    "image/bmp",
+    "image/tiff",
+    "image/x-tiff",
+    "application/octet-stream",
+}
 
 
 def parse_data_url(data_url: str) -> bytes:
@@ -836,9 +856,12 @@ def parse_data_url(data_url: str) -> bytes:
 
     header, encoded = data_url.split(",", 1)
     header = header.strip().lower()
-    mime_type = header.split(";", 1)[0].removeprefix("data:")
-    if mime_type not in ALLOWED_DATA_URL_MIME_TYPES:
-        raise TryOnError("Поддерживаются только PNG, JPG и WebP изображения.", 1105)
+    if not header.startswith("data:"):
+        raise TryOnError("Некорректный формат изображения.", 1103)
+
+    mime_type = header.split(";", 1)[0].removeprefix("data:").strip()
+    if mime_type and mime_type not in ALLOWED_INPUT_DATA_URL_MIME_TYPES and not mime_type.startswith("image/"):
+        raise TryOnError("Загрузите корректный файл изображения.", 1105)
 
     if len(encoded) > MAX_DATA_URL_BYTES * 2:
         raise TryOnError("Изображение слишком большое для обработки.", 1106)
@@ -852,3 +875,40 @@ def parse_data_url(data_url: str) -> bytes:
         raise TryOnError("Изображение слишком большое для обработки.", 1106)
 
     return decoded
+
+
+def normalize_uploaded_image_bytes(
+    image_bytes: bytes,
+    *,
+    output_format: str = "PNG",
+    jpeg_background: tuple[int, int, int] = (255, 255, 255),
+) -> bytes:
+    normalized_format = str(output_format or "PNG").strip().upper()
+    if normalized_format not in ALLOWED_OUTPUT_IMAGE_FORMATS:
+        raise ValueError(f"Unsupported output format: {output_format}")
+
+    try:
+        image = Image.open(io.BytesIO(image_bytes))
+    except Exception as exc:
+        message = "Не удалось открыть изображение."
+        if pillow_heif is None:
+            message += " Для HEIC/HEIF на сервере нужен пакет pillow-heif."
+        raise TryOnError(message, 1201) from exc
+
+    image = ImageOps.exif_transpose(image)
+
+    buffer = io.BytesIO()
+    if normalized_format == "JPEG":
+        if image.mode not in {"RGB", "L"}:
+            rgba = image.convert("RGBA")
+            background = Image.new("RGBA", rgba.size, (*jpeg_background, 255))
+            background.alpha_composite(rgba)
+            image = background.convert("RGB")
+        else:
+            image = image.convert("RGB")
+        image.save(buffer, format="JPEG", quality=92, optimize=True)
+    else:
+        image = image.convert("RGBA")
+        image.save(buffer, format="PNG", optimize=True)
+
+    return buffer.getvalue()

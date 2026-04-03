@@ -23,13 +23,68 @@
         element.className += ` ${toneClasses[tone] || toneClasses.idle}`;
     }
 
-    function fileToDataUrl(file) {
+    const FALLBACK_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'heic', 'heif', 'avif'];
+
+    function fileExtension(file) {
+        const name = file?.name || '';
+        const parts = name.split('.');
+        return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    }
+
+    function isProbablyImageFile(file) {
+        const type = (file?.type || '').toLowerCase();
+        if (type.startsWith('image/')) return true;
+        return FALLBACK_IMAGE_EXTENSIONS.includes(fileExtension(file));
+    }
+
+    function readFileAsDataUrl(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
             reader.onerror = () => reject(new Error('Не удалось прочитать файл.'));
             reader.readAsDataURL(file);
         });
+    }
+
+    function loadImageElement(src) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error('Не удалось открыть изображение в браузере.'));
+            image.src = src;
+        });
+    }
+
+    async function fileToDataUrl(file) {
+        if (!file) {
+            throw new Error('Файл не выбран.');
+        }
+
+        if (!isProbablyImageFile(file)) {
+            throw new Error('Загрузите файл изображения.');
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        try {
+            const image = await loadImageElement(objectUrl);
+            if (!image.naturalWidth || !image.naturalHeight) {
+                throw new Error('Не удалось определить размер изображения.');
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+            const context = canvas.getContext('2d', { alpha: false });
+            if (!context) {
+                throw new Error('Не удалось подготовить изображение к отправке.');
+            }
+            context.drawImage(image, 0, 0);
+            return canvas.toDataURL('image/jpeg', 0.92);
+        } catch (error) {
+            return readFileAsDataUrl(file);
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
     }
 
     function setButtonBusy(button, busy) {

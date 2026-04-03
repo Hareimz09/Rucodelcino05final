@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import shutil
 import tempfile
 from io import BytesIO
@@ -13,7 +14,7 @@ from django.urls import reverse
 from PIL import Image
 
 from .models import TryOnGeneration
-from .services.ai_tryon import Placement, _estimate_placement
+from .services.ai_tryon import Placement, _estimate_placement, normalize_uploaded_image_bytes, parse_data_url
 
 
 TEMP_MEDIA_ROOT = Path(tempfile.mkdtemp(prefix="rucodelcino-test-media-"))
@@ -118,3 +119,20 @@ class TryOnGenerationTests(TestCase):
         self.assertEqual(placement.x, 140)
         self.assertEqual(placement.y, 520)
         self.assertEqual(placement.rotation, 84.0)
+
+
+class ImageNormalizationTests(TestCase):
+    def test_parse_data_url_accepts_octet_stream_payload(self):
+        payload = base64.b64encode(b"abc").decode("ascii")
+        self.assertEqual(parse_data_url(f"data:application/octet-stream;base64,{payload}"), b"abc")
+
+    def test_normalize_uploaded_image_bytes_converts_png_to_jpeg(self):
+        image = Image.new("RGBA", (24, 24), (10, 20, 30, 255))
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+
+        normalized = normalize_uploaded_image_bytes(buffer.getvalue(), output_format="JPEG")
+        reopened = Image.open(BytesIO(normalized))
+
+        self.assertEqual(reopened.format, "JPEG")
+        self.assertEqual(reopened.size, (24, 24))

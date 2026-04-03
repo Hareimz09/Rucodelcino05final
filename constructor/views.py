@@ -46,7 +46,13 @@ from constructor.models import (
     YarnBrand,
     YarnColor,
 )
-from constructor.services.ai_tryon import TryOnError, encode_png_data_url, parse_data_url, perform_tryon
+from constructor.services.ai_tryon import (
+    TryOnError,
+    encode_png_data_url,
+    normalize_uploaded_image_bytes,
+    parse_data_url,
+    perform_tryon,
+)
 
 
 HAT_YARN_SHOP_URLS = {
@@ -1654,8 +1660,14 @@ def tryon_api(request: HttpRequest) -> JsonResponse:
     try:
         user_image_data_url = str(payload.get("user_image", ""))
         accessory_image_data_url = str(payload.get("accessory_image", ""))
-        user_image_bytes = parse_data_url(user_image_data_url)
-        accessory_image_bytes = parse_data_url(accessory_image_data_url)
+        user_image_bytes = normalize_uploaded_image_bytes(
+            parse_data_url(user_image_data_url),
+            output_format="JPEG",
+        )
+        accessory_image_bytes = normalize_uploaded_image_bytes(
+            parse_data_url(accessory_image_data_url),
+            output_format="PNG",
+        )
         result = perform_tryon(
             category=category,
             user_image_bytes=user_image_bytes,
