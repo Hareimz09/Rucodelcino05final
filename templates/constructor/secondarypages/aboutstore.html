@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}О магазине и конструкторе{% endblock %}
+
+{% block content %}
+<section class="space-y-8">
+    <div class="app-card p-6 sm:p-8 space-y-4">
+        <p class="text-xs font-semibold tracking-[0.18em] uppercase text-brand-700">о магазине</p>
+        <h1 class="text-3xl sm:text-4xl font-semibold leading-tight text-slate-900">«Рукоделкино» и онлайн-конструктор</h1>
+        <p class="max-w-3xl text-sm leading-relaxed text-slate-600">
+            Магазин и конструктор работают как единая система: клиент выбирает нужное изделие и его параметры,
+            получает визуальный результат и может быстрее перейти к заказу без долгих согласований.
+        </p>
+        <div class="app-actions">
+            <a href="https://rkdl.ru/" target="_blank" rel="noopener" class="app-btn app-btn-accent">Официальный сайт магазина</a>
+            <a href="{% url 'contact' %}" class="app-btn app-btn-secondary">Контакты</a>
+        </div>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-3">
+        <div class="app-card p-5 space-y-3">
+            <div class="text-sm font-semibold text-slate-800">Подбор изделия</div>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Пользователь выбирает модель, оттенок, вязку и другие параметры в понятном интерфейсе.
+            </p>
+        </div>
+        <div class="app-card p-5 space-y-3">
+            <div class="text-sm font-semibold text-slate-800">AI-примерка</div>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                После загрузки фото система показывает, как выбранное изделие может выглядеть на человеке.
+            </p>
+        </div>
+        <div class="app-card p-5 space-y-3">
+            <div class="text-sm font-semibold text-slate-800">Быстрое согласование</div>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Готовый результат сохраняется в профиле, его можно скачать и использовать как основу для заказа.
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<section class="space-y-14">
+    <div class="app-card p-6 sm:p-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-10">
+        <div class="flex-1 space-y-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">конструктор рукоделкино</p>
+            <h1 class="text-3xl sm:text-4xl font-semibold leading-tight text-slate-900">
+                Соберите шапку или украшение и сразу примерьте на себя онлайн
+            </h1>
+            <p class="text-base text-slate-600">
+                Конструктор помогает быстро выбрать модель, цвет и детали изделия, а затем запустить AI-примерку по фото.
+                Всё сделано так, чтобы клиент сразу понимал будущий результат и мог без лишней переписки перейти к заказу.
+            </p>
+            <div class="app-actions">
+                <a href="{% url 'hats_constructor' %}" class="app-btn app-btn-accent">Конструктор шапок</a>
+                <a href="{% url 'jewelry_constructor' %}" class="app-btn app-btn-secondary">Конструктор украшений</a>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-600">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <p class="text-slate-500 text-xs">Что выбирает клиент</p>
+                    <p class="text-slate-900 font-semibold">модель, вязку, цвет и детали</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <p class="text-slate-500 text-xs">Что получает в итоге</p>
+                    <p class="text-slate-900 font-semibold">готовый эскиз и результат примерки</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <p class="text-slate-500 text-xs">Для чего это нужно</p>
+                    <p class="text-slate-900 font-semibold">быстрее согласовать изделие</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex-1 w-full">
+            <a href="https://rutube.ru/video/cb7b3c0aad5c8a1e5cf5d22f59cc65b3/"
+               target="_blank"
+               rel="noopener"
+               class="group relative block rounded-3xl overflow-hidden border border-slate-100 shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-brand-500/40">
+                <div class="aspect-video bg-slate-900/85 text-white flex flex-col items-center justify-center p-6 text-center">
+                    <div class="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-white/10 transition group-hover:scale-105 group-hover:bg-white/14">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-4.197-2.498A1 1 0 009 9.5v5a1 1 0 001.555.832l4.197-2.502a1 1 0 000-1.664z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <p class="text-lg font-semibold">Простой сценарий работы</p>
+                    <p class="text-sm text-white/80">собрать изделие → загрузить фото → получить AI-примерку</p>
+                    <span class="mt-5 inline-flex min-h-[2.5rem] items-center justify-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition group-hover:bg-white/15">
+                        Смотреть видео-инструкцию
+                    </span>
+                    <p class="mt-3 text-xs text-white/60">Видео откроется на Rutube в новой вкладке</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="app-card p-6 sm:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">как это работает</p>
+                <h2 class="text-2xl font-semibold text-slate-900">3 шага до вашего идеального изделия</h2>
+            </div>
+            <a href="{% url 'contact' %}" class="text-sm font-semibold text-brand-700 hover:text-brand-800">Задать вопрос</a>
+        </div>
+        <div class="grid gap-4 md:grid-cols-3">
+            <div class="rounded-2xl border border-slate-200 p-4 space-y-2 bg-slate-50">
+                <p class="text-xs font-semibold text-slate-500">01</p>
+                <p class="font-semibold text-slate-900">Соберите изделие</p>
+                <p class="text-sm text-slate-600">Выберите нужную модель, тип вязки, оттенок пряжи или состав украшения в одном интерфейсе.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 p-4 space-y-2 bg-white">
+                <p class="text-xs font-semibold text-slate-500">02</p>
+                <p class="font-semibold text-slate-900">Загрузите своё фото</p>
+                <p class="text-sm text-slate-600">Система использует фото пользователя, чтобы показать посадку выбранного изделия максимально наглядно.</p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 p-4 space-y-2 bg-white">
+                <p class="text-xs font-semibold text-slate-500">03</p>
+                <p class="font-semibold text-slate-900">Получите AI-примерку</p>
+                <p class="text-sm text-slate-600">Готовый результат сохраняется в профиль, его можно скачать, опубликовать в галерее и обсудить перед заказом.</p>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="app-card p-6 sm:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">галерея пользователей</p>
+                <h2 class="text-2xl font-semibold text-slate-900">Последние опубликованные работы</h2>
+            </div>
+            <a href="{% url 'gallery' %}" class="text-sm font-semibold text-brand-700 hover:text-brand-800">Открыть всю галерею</a>
+        </div>
+
+        {% if gallery_preview_count %}
+            <div class="grid gap-4 lg:grid-cols-3">
+                {% for work in gallery_preview %}
+                    <article class="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-slate-50/70">
+                        <div data-tryon-frame class="rounded-none border-0" style="--preview-ratio: {{ work.user_image.width|default:3 }} / {{ work.user_image.height|default:4 }}; min-height: 18rem;">
+                            <img src="{{ work.result_image.url }}" alt="{{ work.gallery_title_display }}" class="w-full h-full object-contain">
+                        </div>
+                        <div class="space-y-3 border-t border-slate-200 bg-white px-4 py-4">
+                            <div>
+                                <h3 class="text-base font-semibold text-slate-900">{{ work.gallery_title_display }}</h3>
+                                <p class="mt-1 text-xs text-slate-500">{{ work.user.get_full_name|default:work.user.email }}</p>
+                            </div>
+                            <p class="text-sm text-slate-600 line-clamp-2">{{ work.gallery_description_display|default:"Без описания" }}</p>
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                                <span>{{ work.likes_count }} лайков</span>
+                                <span>{{ work.comments_count }} комментариев</span>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center">
+                <h3 class="font-semibold text-slate-900">Галерея пока пустая</h3>
+                <p class="mt-2 text-sm text-slate-600">Первые опубликованные работы появятся здесь после AI-примерки.</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Команда O5 — о проекте{% endblock %}
+
+{% block content %}
+<section class="space-y-8">
+    <div class="app-card p-6 sm:p-8 space-y-4">
+        <p class="text-xs font-semibold tracking-[0.18em] uppercase text-brand-700">команда o5</p>
+        <h1 class="text-3xl sm:text-4xl font-semibold leading-tight text-slate-900">Кто делает проект</h1>
+        <p class="max-w-3xl text-sm leading-relaxed text-slate-600">
+            Команда O5 разрабатывает сайт-конструктор для магазина «Рукоделкино». Задача проекта — сделать подбор и согласование изделий понятными,
+            быстрыми и визуально наглядными для клиента.
+        </p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <article class="app-card p-5 space-y-4">
+            <div class="flex items-center gap-4">
+                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-100 to-brand-200 text-lg font-semibold text-slate-900">ИЗ</div>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Зайков Илья</h2>
+                    <p class="text-sm text-slate-500">Frontend разработчик</p>
+                </div>
+            </div>
+            <p class="text-sm leading-relaxed text-slate-600">
+                Отвечает за внешний вид и пользовательский интерфейс сайта. Реализует адаптивную вёрстку, обеспечивает корректную работу на всех устройствах и делает взаимодействие с конструктором интуитивно понятным.
+            </p>
+        </article>
+
+        <article class="app-card p-5 space-y-4">
+            <div class="flex items-center gap-4">
+                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-brand-100 text-lg font-semibold text-slate-900">ДП</div>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Дмитриева Полина</h2>
+                    <p class="text-sm text-slate-500">Руководитель команды</p>
+                </div>
+            </div>
+            <p class="text-sm leading-relaxed text-slate-600">
+                Организует работу команды, распределяет задачи и контролирует сроки. Отвечает за концепцию проекта, согласованность решений и общее направление развития продукта.
+            </p>
+        </article>
+
+        <article class="app-card p-5 space-y-4">
+            <div class="flex items-center gap-4">
+                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 text-lg font-semibold text-slate-900">ПП</div>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Поташкина Полина</h2>
+                    <p class="text-sm text-slate-500">Дизайнер</p>
+                </div>
+            </div>
+            <p class="text-sm leading-relaxed text-slate-600">
+                Разрабатывает визуальную концепцию сайта и конструктора. Отвечает за стиль, цветовые решения, удобство интерфейса и визуальную целостность продукта.
+            </p>
+        </article>
+
+        <article class="app-card p-5 space-y-4">
+            <div class="flex items-center gap-4">
+                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-cyan-100 text-lg font-semibold text-slate-900">НВ</div>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Нечаева Влада</h2>
+                    <p class="text-sm text-slate-500">Тестировщик</p>
+                </div>
+            </div>
+            <p class="text-sm leading-relaxed text-slate-600">
+                Проверяет корректность работы сайта и конструктора на разных устройствах и сценариях. Находит ошибки, контролирует качество продукта и помогает команде выпускать стабильные обновления без сбоев.
+            </p>
+        </article>
+
+        <article class="app-card p-5 space-y-4 md:col-span-2 xl:col-span-1">
+            <div class="flex items-center gap-4">
+                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 text-lg font-semibold text-slate-900">ХМ</div>
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Хренников Макар</h2>
+                    <p class="text-sm text-slate-500">Backend разработчик</p>
+                </div>
+            </div>
+            <p class="text-sm leading-relaxed text-slate-600">
+                Отвечает за серверную часть и логику работы сайта. Обеспечивает стабильную работу конструктора, обработку данных и интеграцию AI-функций.
+            </p>
+        </article>
+    </div>
+</section>
+{% endblock %}

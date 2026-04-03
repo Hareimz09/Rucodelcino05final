@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+{% with gradient_placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f8fafc'/%3E%3Cstop offset='100%25' stop-color='%23eef2ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='800' fill='url(%23g)'/%3E%3C/svg%3E" %}
+{{ hat_catalog|json_script:"hat-catalog-data" }}
+
+<section class="grid grid-cols-1 xl:grid-cols-[360px,minmax(0,1fr)] gap-8">
+    <aside class="space-y-5">
+        <div class="app-card p-5 space-y-5">
+            <div>
+                <h1 class="text-2xl font-semibold">Шапки</h1>
+                <p class="text-sm text-slate-500 mt-2">Выберите модель, вязку и цвет.</p>
+            </div>
+
+            <section class="space-y-3">
+                <h2 class="text-xs font-semibold tracking-[0.16em] uppercase text-slate-500">Модель шапки</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    {% for item in hat_catalog.models %}
+                        <label class="hat-choice-card group cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 transition hover:border-slate-300 hover:bg-slate-50/80">
+                            <input type="radio" name="hat_model" value="{{ item.slug }}" class="sr-only" {% if forloop.first %}checked{% endif %}>
+                            <div class="rounded-[1.15rem] border border-slate-200 bg-[radial-gradient(circle_at_top,_#ffffff,_#f8fafc_55%,_#eef2f7)] p-3 aspect-[4/5] flex items-center justify-center shadow-sm overflow-hidden">
+                                <img src="{{ item.preview_asset_url }}" alt="{{ item.name }}" class="max-h-full w-full object-contain drop-shadow-[0_10px_18px_rgba(15,23,42,0.08)]">
+                            </div>
+                            <div class="mt-2 text-sm font-medium text-slate-800">{{ item.name }}</div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="space-y-3">
+                <h2 class="text-xs font-semibold tracking-[0.16em] uppercase text-slate-500">Вязка</h2>
+                <div class="grid gap-3">
+                    {% for item in hat_catalog.knit_styles %}
+                        <label class="knit-choice-card cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300">
+                            <input type="radio" name="hat_knit" value="{{ item.code }}" class="sr-only" {% if forloop.first %}checked{% endif %}>
+                            <div class="text-sm font-semibold text-slate-800">{{ item.name }}</div>
+                            <canvas class="knit-swatch-canvas mt-3 h-12 w-full rounded-xl border border-slate-200 bg-slate-100/70 block" data-knit-code="{{ item.code }}"></canvas>
+                        </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="space-y-3">
+                <h2 class="text-xs font-semibold tracking-[0.16em] uppercase text-slate-500">Фирма пряжи</h2>
+                <div class="grid gap-2">
+                    {% for item in hat_catalog.yarn_brands %}
+                        <label class="brand-choice-card cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300">
+                            <input type="radio" name="yarn_brand" value="{{ item.slug }}" class="sr-only" {% if forloop.first %}checked{% endif %}>
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-semibold text-slate-800">{{ item.name }}</div>
+                                </div>
+                                {% if item.shop_url %}
+                                    <a href="{{ item.shop_url }}" target="_blank" rel="noopener" class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100" onclick="event.stopPropagation();">
+                                        <span>в магазин</span>
+                                        <span aria-hidden="true">↗</span>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xs font-semibold tracking-[0.16em] uppercase text-slate-500">Цвет</h2>
+                    <span id="hat-brand-current" class="text-[11px] font-medium text-slate-500">—</span>
+                </div>
+                <div id="hat-color-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {% for item in hat_catalog.yarn_colors %}
+                        <label
+                            class="color-choice-card cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 transition hover:border-slate-300"
+                            data-brand="{{ item.brand_name }}"
+                            data-brand-slug="{{ item.brand_slug }}"
+                            data-color-slug="{{ item.slug }}"
+                            data-color-id="{{ item.id }}"
+                        >
+                            <input
+                                type="radio"
+                                name="yarn_color"
+                                value="{{ item.slug }}"
+                                data-brand-slug="{{ item.brand_slug }}"
+                                class="sr-only"
+                                {% if forloop.first %}checked{% endif %}
+                            >
+                            <div class="flex items-start gap-3">
+                                <div class="mt-0.5 h-9 w-9 shrink-0 rounded-full border border-slate-200" style="background: {{ item.hex_value }};"></div>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-semibold text-slate-800">{{ item.name }}</div>
+                                    <div class="text-xs text-slate-500 mt-1">{{ item.brand_name }}</div>
+                                </div>
+                            </div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <div class="font-medium text-slate-800">Выбрано</div>
+                <div id="hat-choice-summary" class="mt-2 text-sm text-slate-600">—</div>
+            </div>
+        </div>
+
+    </aside>
+
+    <div class="space-y-6">
+        <div class="app-card p-5">
+            <div class="mb-4">
+                <h2 class="text-sm font-semibold">Превью</h2>
+            </div>
+            <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr),280px]">
+                <div class="rounded-[28px] border border-slate-200 bg-[linear-gradient(45deg,#f8fafc_25%,#eef2f7_25%,#eef2f7_50%,#f8fafc_50%,#f8fafc_75%,#eef2f7_75%,#eef2f7_100%)] bg-[length:28px_28px] p-4">
+                    <div class="rounded-[24px] bg-white/70 ring-1 ring-white/80 backdrop-blur-sm">
+                        <canvas id="hat-product-canvas" class="w-full aspect-square block"></canvas>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                        <div class="text-xs uppercase tracking-[0.16em] text-slate-500">Конфигурация</div>
+                        <div id="hat-export-meta" class="mt-3 text-sm text-slate-600">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-card p-5 space-y-5">
+            <div class="mb-2">
+                <h2 class="text-sm font-semibold">Виртуальная примерка</h2>
+                <p class="text-xs text-slate-500 mt-1">Загрузите фото и посмотрите, как выбранная шапка будет смотреться на вас.</p>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 space-y-3">
+                {% if tryon_can_generate %}
+                    <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr),auto] sm:items-start">
+                        <div class="space-y-2 min-w-0">
+                            <p>AI-примерка привязана к аккаунту. Каждая успешная генерация автоматически сохраняется в профиль.</p>
+                            <p id="hat-tryon-quota" class="text-xs font-semibold text-slate-700">Осталось {{ tryon_remaining }}: включено {{ tryon_monthly_remaining }} из {{ tryon_monthly_limit }} · доп. {{ tryon_extra_remaining }}</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 sm:justify-end">
+                            <a href="{% url 'account' %}" class="inline-flex min-h-[2.25rem] items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900">Открыть мои работы</a>
+                            <a href="{{ tryon_purchase_url }}" class="inline-flex min-h-[2.25rem] items-center justify-center rounded-full border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-100">Купить генерации</a>
+                        </div>
+                    </div>
+                {% elif request.user.is_authenticated and tryon_is_master_user %}
+                    <p>{{ tryon_disabled_reason }}</p>
+                    <a href="{% url 'account' %}" class="app-btn app-btn-secondary text-xs sm:w-auto">Открыть статистику</a>
+                {% else %}
+                    <p>{{ tryon_disabled_reason }}</p>
+                    <div class="app-actions">
+                        <a href="{{ tryon_login_url }}" class="app-btn app-btn-primary text-xs sm:w-auto">Войти</a>
+                        <a href="{% url 'registration' %}?next={{ request.path|urlencode }}" class="app-btn app-btn-secondary text-xs sm:w-auto">Регистрация</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-2">
+                <div class="space-y-2">
+                    <p class="text-xs font-semibold text-slate-600">Фото пользователя</p>
+                    <div data-tryon-frame class="relative w-full overflow-hidden rounded-2xl border border-slate-200" style="--preview-ratio: 3/4;">
+                        <img id="hat-user-photo" data-placeholder-src="{{ gradient_placeholder }}" data-is-placeholder="true" class="w-full h-full object-contain" src="{{ gradient_placeholder }}" alt="Ваше фото">
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-xs font-semibold text-slate-600">Фото с шапкой</p>
+                    <div data-tryon-frame class="relative w-full overflow-hidden rounded-2xl border border-slate-200" style="--preview-ratio: 3/4;">
+                        <img id="hat-ai-photo" data-placeholder-src="{{ gradient_placeholder }}" data-is-placeholder="true" class="w-full h-full object-contain" src="{{ gradient_placeholder }}" alt="Результат с шапкой">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <div class="app-actions sm:items-center sm:justify-between">
+                    <p class="text-xs text-slate-500">Лучше использовать фронтальное фото или лёгкий полупрофиль без перекрытия лба руками.</p>
+                    <label class="app-btn app-btn-primary cursor-pointer text-xs sm:w-auto">
+                        Загрузить фото
+                        <input type="file" id="hat-photo-input" accept="image/*" hidden>
+                    </label>
+                </div>
+                <div class="app-actions sm:items-center">
+                    <button id="hat-generate-btn" type="button" class="app-btn app-btn-accent text-xs sm:w-auto">
+                        {% if tryon_can_generate %}Сделать AI-примерку{% else %}Генерация недоступна{% endif %}
+                    </button>
+                    <a id="hat-download-link" class="hidden app-btn app-btn-secondary text-xs sm:w-auto" href="#" download="hat-tryon.png">
+                        Скачать результат
+                    </a>
+                    <span id="hat-tryon-status" class="status-pill bg-slate-100 text-slate-600">
+                        Загрузите фото, затем запустите примерку.
+                    </span>
+                </div>
+                <p id="hat-tryon-warning" class="text-xs text-slate-500"></p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/server_tryon.js' %}"></script>
+<script src="{% static 'js/hat_constructor.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        window.RucodelHatConstructor?.init({
+            tryon: {
+                category: 'hat',
+                photoInputId: 'hat-photo-input',
+                userPhotoId: 'hat-user-photo',
+                aiPhotoId: 'hat-ai-photo',
+                statusId: 'hat-tryon-status',
+                buttonId: 'hat-generate-btn',
+                downloadLinkId: 'hat-download-link',
+                warningId: 'hat-tryon-warning',
+                quotaId: 'hat-tryon-quota',
+                isAuthenticated: {{ request.user.is_authenticated|yesno:'true,false' }},
+                canGenerate: {{ tryon_can_generate|yesno:'true,false' }},
+                disabledReason: '{{ tryon_disabled_reason|escapejs }}',
+                remainingGenerations: {{ tryon_remaining }},
+                monthlyLimit: {{ tryon_monthly_limit }},
+                monthlyRemaining: {{ tryon_monthly_remaining }},
+                extraRemaining: {{ tryon_extra_remaining }},
+                loginUrl: '{{ tryon_login_url|escapejs }}',
+            },
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+{% with gradient_placeholder="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f8fafc'/%3E%3Cstop offset='100%25' stop-color='%23eef2ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='800' fill='url(%23g)'/%3E%3C/svg%3E" %}
+{{ jewelry_catalog|json_script:"jewelry-catalog-data" }}
+{{ copied_jewelry_work|json_script:"copied-jewelry-work-data" }}
+
+<section class="grid grid-cols-1 xl:grid-cols-[360px,minmax(0,1fr)] gap-8 items-start">
+    <aside class="space-y-5">
+        <div class="app-card p-5 space-y-5">
+            <div>
+                <h1 class="text-2xl font-semibold">Украшения</h1>
+                <p class="text-sm text-slate-500 mt-2">Соберите изделие под себя: колье, браслет или серьги.</p>
+            </div>
+
+            <section class="space-y-3">
+                <h2 class="text-xs font-semibold tracking-[0.16em] uppercase text-slate-500">Тип изделия</h2>
+                <div class="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                    {% for item in jewelry_catalog.kinds %}
+                        <label class="jewelry-kind-card cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300" data-kind-card="{{ item.code }}">
+                            <input type="radio" name="jewelry_kind" value="{{ item.code }}" class="sr-only" data-kind="{{ item.code }}" {% if forloop.first %}checked{% endif %}>
+                            <div class="text-sm font-semibold text-slate-800">{{ item.name }}</div>
+                            <div class="mt-1 text-xs text-slate-500">{{ item.description }}</div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="space-y-3">
+                <h2 class="text-xs font-semibold tracking-[0.16em] uppercase text-slate-500">Основа</h2>
+                <div class="grid gap-3">
+                    {% for item in jewelry_catalog.bases %}
+                        <label class="jewelry-base-card cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300" data-kind-card="{{ item.kind }}">
+                            <input type="radio" name="jewelry_base" value="{{ item.code }}" data-kind="{{ item.kind }}" class="sr-only" {% if forloop.first %}checked{% endif %}>
+                            <div class="text-sm font-semibold text-slate-800">{{ item.name }}</div>
+                            <div class="mt-1 text-xs text-slate-500">{{ item.description }}</div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="space-y-3">
+                <h2 id="jewelry-size-heading" class="text-xs font-semibold tracking-[0.16em] uppercase text-slate-500">Длина</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    {% for item in jewelry_catalog.lengths %}
+                        <label class="length-choice-card cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-slate-300">
+                            <input type="radio" name="target_length" value="{{ item.value_mm }}" data-kind="{{ item.kind }}" class="sr-only" {% if forloop.first %}checked{% endif %}>
+                            <div class="text-sm font-semibold text-slate-800">{{ item.label }}</div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section id="clasp-section" class="space-y-3">
+                <h2 class="text-xs font-semibold tracking-[0.16em] uppercase text-slate-500">Застёжка</h2>
+                <div class="grid gap-3">
+                    {% for item in jewelry_catalog.clasps %}
+                        <label class="clasp-choice-card cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 transition hover:border-slate-300">
+                            <input type="radio" name="clasp_type" value="{{ item.slug }}" class="sr-only" {% if forloop.first %}checked{% endif %}>
+                            <div class="grid grid-cols-[auto,1fr] gap-3 items-center">
+                                <div class="h-10 w-10 rounded-xl border border-slate-200 bg-slate-50 p-2 flex items-center justify-center">
+                                    <img src="{{ item.preview_asset_url }}" alt="{{ item.name }}" class="max-h-full object-contain">
+                                </div>
+                                <div>
+                                    <div class="text-sm font-semibold text-slate-800">{{ item.name }}</div>
+                                    <div class="text-xs text-slate-500 mt-0.5">{{ item.material }}</div>
+                                </div>
+                            </div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 class="text-xs font-semibold tracking-[0.16em] uppercase text-slate-500">Камушки</h2>
+                    <input id="stone-search-input" type="search" placeholder="Поиск по каталогу" class="w-40 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 outline-none focus:border-slate-300">
+                </div>
+                <div class="grid gap-3 max-h-[32rem] overflow-auto pr-1">
+                    {% for item in jewelry_catalog.stones %}
+                        <article class="stone-catalog-card rounded-2xl border border-slate-200 bg-white p-3" data-stone-search="{{ item.name|lower }} {{ item.material|lower }} {{ item.diameter_mm }}">
+                            <div class="grid grid-cols-[auto,1fr,auto] gap-3 items-center">
+                                <div class="h-12 w-12 rounded-xl border border-slate-200 bg-slate-50 p-2 flex items-center justify-center shrink-0">
+                                    <img src="{{ item.preview_asset_url }}" alt="{{ item.name }}" class="max-h-full object-contain">
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-semibold text-slate-800 truncate">{{ item.name }}</h3>
+                                    <p class="text-xs text-slate-500 mt-1">{{ item.material }} · {{ item.diameter_mm }} мм</p>
+                                </div>
+                                <button type="button" class="add-stone-btn rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700" data-stone-slug="{{ item.slug }}">
+                                    Добавить
+                                </button>
+                            </div>
+                            {% if item.description %}
+                                <p class="text-xs text-slate-500 mt-2">{{ item.description }}</p>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </aside>
+
+    <div class="space-y-6">
+        <div class="app-card p-5">
+            <div class="flex flex-col gap-3 mb-4 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold">Сборка украшения</h2>
+                    <p id="jewelry-view-hint" class="text-xs text-slate-500 mt-1">Перетаскивайте элементы прямо в превью, а последовательность ниже прокручивайте вертикально мышкой или пальцем.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <span id="jewelry-kind-badge" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">Колье</span>
+                    <span id="jewelry-length-badge" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">—</span>
+                </div>
+            </div>
+
+            <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr),300px] items-stretch">
+                <div class="rounded-[28px] border border-slate-200 bg-[linear-gradient(45deg,#f8fafc_25%,#eef2ff_25%,#eef2ff_50%,#f8fafc_50%,#f8fafc_75%,#eef2ff_75%,#eef2ff_100%)] bg-[length:28px_28px] p-4 flex min-h-[21rem] sm:min-h-[26rem] lg:min-h-[32rem] h-full">
+                    <div class="rounded-[24px] bg-white/90 ring-1 ring-white/80 backdrop-blur-sm overflow-hidden flex-1 min-h-[21rem] sm:min-h-[26rem] lg:min-h-[32rem] h-full">
+                        <canvas id="jewelry-preview-canvas" class="w-full h-full block cursor-grab touch-none"></canvas>
+                    </div>
+                </div>
+
+                <div class="space-y-3 flex flex-col min-h-[auto] lg:min-h-[32rem] h-full">
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex-1 min-h-0">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div class="text-xs uppercase tracking-[0.16em] text-slate-500">Последовательность элементов</div>
+                            <div class="ml-auto flex items-center gap-2">
+                                <span id="selected-stones-count" class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">0</span>
+                                <button id="clear-stones-btn" type="button" class="text-xs font-semibold text-rose-600 hover:text-rose-700">Очистить</button>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-[11px] text-slate-500">Порядок меняется перетаскиванием в превью, а список ниже можно просто прокручивать вниз.</p>
+                        <div id="selected-stones-list" class="mt-3 flex max-h-[22rem] flex-col gap-2 overflow-y-auto overflow-x-hidden pr-1 text-sm text-slate-600"></div>
+                    </div>
+                    <p id="jewelry-overflow-warning" class="text-xs text-amber-700"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-card p-5 space-y-5">
+            <div class="mb-2">
+                <h2 class="text-sm font-semibold">Виртуальная примерка</h2>
+                <p class="text-xs text-slate-500 mt-1">Слева — фото пользователя, справа — результат с украшением. В AI уходит прозрачный рендер текущей сборки.</p>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 space-y-3">
+                {% if tryon_can_generate %}
+                    <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr),auto] sm:items-start">
+                        <div class="space-y-2 min-w-0">
+                            <p>AI-примерка привязана к аккаунту. Каждая успешная генерация автоматически сохраняется в профиль.</p>
+                            <p id="jewelry-tryon-quota" class="text-xs font-semibold text-slate-700">Осталось {{ tryon_remaining }}: включено {{ tryon_monthly_remaining }} из {{ tryon_monthly_limit }} · доп. {{ tryon_extra_remaining }}</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 sm:justify-end">
+                            <a href="{% url 'account' %}" class="inline-flex min-h-[2.25rem] items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900">Открыть мои работы</a>
+                            <a href="{{ tryon_purchase_url }}" class="inline-flex min-h-[2.25rem] items-center justify-center rounded-full border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-100">Купить генерации</a>
+                        </div>
+                    </div>
+                {% elif request.user.is_authenticated and tryon_is_master_user %}
+                    <p>{{ tryon_disabled_reason }}</p>
+                    <a href="{% url 'account' %}" class="app-btn app-btn-secondary text-xs sm:w-auto">Открыть статистику</a>
+                {% else %}
+                    <p>{{ tryon_disabled_reason }}</p>
+                    <div class="app-actions">
+                        <a href="{{ tryon_login_url }}" class="app-btn app-btn-primary text-xs sm:w-auto">Войти</a>
+                        <a href="{% url 'registration' %}?next={{ request.path|urlencode }}" class="app-btn app-btn-secondary text-xs sm:w-auto">Регистрация</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-2">
+                <div class="space-y-2">
+                    <p id="jewelry-user-title" class="text-xs font-semibold text-slate-600">Фото пользователя</p>
+                    <div data-tryon-frame class="relative w-full overflow-hidden rounded-2xl border border-slate-200" style="--preview-ratio: 3/4;">
+                        <img id="jewelry-user-photo" data-placeholder-src="{{ gradient_placeholder }}" data-is-placeholder="true" class="w-full h-full object-contain" src="{{ gradient_placeholder }}" alt="Ваше фото">
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <p id="jewelry-result-title" class="text-xs font-semibold text-slate-600">Фото с украшением</p>
+                    <div data-tryon-frame class="relative w-full overflow-hidden rounded-2xl border border-slate-200" style="--preview-ratio: 3/4;">
+                        <img id="jewelry-ai-photo" data-placeholder-src="{{ gradient_placeholder }}" data-is-placeholder="true" class="w-full h-full object-contain" src="{{ gradient_placeholder }}" alt="Результат с украшением">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <div class="app-actions sm:items-center sm:justify-between">
+                    <p id="jewelry-photo-hint" class="text-xs text-slate-500">Для колье лучше фото с открытой шеей и плечами, без сильных перекрытий волосами.</p>
+                    <label id="jewelry-upload-label" class="app-btn app-btn-primary cursor-pointer text-xs sm:w-auto">
+                        <span id="jewelry-upload-label-text">Загрузить фото</span>
+                        <input type="file" id="jewelry-photo-input" accept="image/*" hidden>
+                    </label>
+                </div>
+                <div class="app-actions sm:items-center">
+                    <button id="jewelry-generate-btn" type="button" class="app-btn app-btn-accent text-xs sm:w-auto">
+                        {% if tryon_can_generate %}Сделать AI-примерку{% else %}Генерация недоступна{% endif %}
+                    </button>
+                    <a id="jewelry-download-link" class="hidden app-btn app-btn-secondary text-xs sm:w-auto" href="#" download="jewelry-tryon.png">
+                        Скачать результат
+                    </a>
+                    <span id="jewelry-tryon-status" class="status-pill bg-slate-100 text-slate-600">
+                        Загрузите фото, затем запустите примерку.
+                    </span>
+                </div>
+                <p id="jewelry-tryon-warning" class="text-xs text-slate-500"></p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/server_tryon.js' %}"></script>
+<script src="{% static 'js/jewelry_constructor.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        window.RucodelJewelryConstructor?.init({
+            copiedWork: (() => { try { return JSON.parse(document.getElementById('copied-jewelry-work-data')?.textContent || 'null'); } catch (error) { return null; } })(),
+            tryon: {
+                category: 'jewelry',
+                photoInputId: 'jewelry-photo-input',
+                userPhotoId: 'jewelry-user-photo',
+                aiPhotoId: 'jewelry-ai-photo',
+                statusId: 'jewelry-tryon-status',
+                buttonId: 'jewelry-generate-btn',
+                downloadLinkId: 'jewelry-download-link',
+                warningId: 'jewelry-tryon-warning',
+                quotaId: 'jewelry-tryon-quota',
+                isAuthenticated: {{ request.user.is_authenticated|yesno:'true,false' }},
+                canGenerate: {{ tryon_can_generate|yesno:'true,false' }},
+                disabledReason: '{{ tryon_disabled_reason|escapejs }}',
+                remainingGenerations: {{ tryon_remaining }},
+                monthlyLimit: {{ tryon_monthly_limit }},
+                monthlyRemaining: {{ tryon_monthly_remaining }},
+                extraRemaining: {{ tryon_extra_remaining }},
+                loginUrl: '{{ tryon_login_url|escapejs }}',
+            },
+        });
+    });
+</script>
+{% endblock %}
