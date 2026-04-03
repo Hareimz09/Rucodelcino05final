@@ -15,7 +15,7 @@
     </div>
 
     {% if gallery_items %}
-        <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div class="grid items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
             {% for work in gallery_items %}
                 <article id="gallery-work-{{ work.id }}" class="app-card overflow-hidden flex flex-col">
                     <div class="w-full h-96 overflow-hidden bg-slate-100">
@@ -26,7 +26,7 @@
                         >
                     </div>
 
-                    <div class="space-y-4 border-t border-slate-200 px-4 py-4 flex-1">
+                    <div class="space-y-4 border-t border-slate-200 px-4 py-4">
                         <div class="space-y-2">
                             <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
                                 <span>{{ work.created_at|timezone:"Asia/Yekaterinburg"|date:"d.m.Y H:i" }}</span>
