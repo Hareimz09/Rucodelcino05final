@@ -96,7 +96,7 @@
             <div class="grid gap-4 lg:grid-cols-3">
                 {% for work in gallery_preview %}
                     <article class="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-slate-50/70">
-                        <div data-tryon-frame class="rounded-none border-0" style="--preview-ratio: {{ work.user_image.width|default:3 }} / {{ work.user_image.height|default:4 }}; min-height: 18rem;">
+                        <div data-tryon-frame class="rounded-none border-0" style="--preview-ratio: 3 / 4; min-height: 18rem;">
                             <img src="{{ work.result_image.url }}" alt="{{ work.gallery_title_display }}" class="w-full h-full object-contain">
                         </div>
                         <div class="space-y-3 border-t border-slate-200 bg-white px-4 py-4">

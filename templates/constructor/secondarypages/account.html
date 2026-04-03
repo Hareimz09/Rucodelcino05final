@@ -186,13 +186,13 @@
                                     <div class="grid gap-4 p-5 md:grid-cols-2">
                                         <div class="space-y-2 min-w-0">
                                             <p class="text-xs font-semibold text-slate-600">Исходное фото</p>
-                                            <div data-tryon-frame class="overflow-hidden rounded-2xl border border-slate-200" style="--preview-ratio: {{ work.user_image.width|default:3 }} / {{ work.user_image.height|default:4 }};">
+                                            <div data-tryon-frame class="overflow-hidden rounded-2xl border border-slate-200" style="--preview-ratio: 3 / 4;">
                                                 <img src="{{ work.user_image.url }}" alt="Исходное фото" class="w-full h-full object-contain">
                                             </div>
                                         </div>
                                         <div class="space-y-2 min-w-0">
                                             <p class="text-xs font-semibold text-slate-600">Результат примерки</p>
-                                            <div data-tryon-frame class="overflow-hidden rounded-2xl border border-slate-200" style="--preview-ratio: {{ work.user_image.width|default:3 }} / {{ work.user_image.height|default:4 }};">
+                                            <div data-tryon-frame class="overflow-hidden rounded-2xl border border-slate-200" style="--preview-ratio: 3 / 4;">
                                                 <img src="{{ work.result_image.url }}" alt="Результат примерки" class="w-full h-full object-contain">
                                             </div>
                                         </div>
