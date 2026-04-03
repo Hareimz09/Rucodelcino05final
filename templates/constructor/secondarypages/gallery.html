@@ -17,7 +17,7 @@
     {% if gallery_items %}
         <div class="grid items-start gap-5 md:grid-cols-2 xl:grid-cols-3">
             {% for work in gallery_items %}
-                <article id="gallery-work-{{ work.id }}" class="relative z-10">
+                <article id="gallery-work-{{ work.id }}" class="relative z-0 has-[details[open]]:z-[100]">
                     <div class="app-card h-[37rem] overflow-visible flex flex-col">
                         <div class="h-96 w-full overflow-hidden rounded-t-3xl bg-slate-100">
                             <img
