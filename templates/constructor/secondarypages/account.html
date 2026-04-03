@@ -164,7 +164,6 @@
                                                 <div class="space-y-2 lg:max-w-xl">
                                                     <div class="block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Название работы</div>
                                                     <h3 class="text-lg font-semibold text-slate-900 break-words">{{ work.gallery_title_display }}</h3>
-                                                    <p class="text-xs text-slate-500">Название формируется автоматически и не редактируется пользователем.</p>
                                                 </div>
 
                                                 {% if not work.is_public_gallery %}
@@ -221,7 +220,7 @@
                                                 <form method="post" action="{% url 'toggle_gallery_visibility' work.id %}">
                                                     {% csrf_token %}
                                                     <input type="hidden" name="next" value="{{ request.get_full_path }}#work-{{ work.id }}">
-                                                    <button type="submit" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900">Убрать</button>
+                                                    <button type="submit" class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900">Удалить</button>
                                                 </form>
                                             </div>
                                             {% include "constructor/includes/work_comments.html" with work=work next_base=request.get_full_path anchor_prefix="work" show_likes_meta=True %}

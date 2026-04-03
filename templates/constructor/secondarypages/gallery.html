@@ -17,12 +17,16 @@
     {% if gallery_items %}
         <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {% for work in gallery_items %}
-                <article id="gallery-work-{{ work.id }}" class="app-card overflow-hidden">
-                    <div data-tryon-frame class="rounded-none border-0" style="--preview-ratio: {{ work.user_image.width|default:3 }} / {{ work.user_image.height|default:4 }}; min-height: 18rem;">
-                        <img src="{{ work.result_image.url }}" alt="{{ work.gallery_title_display }}" class="w-full h-full object-contain">
+                <article id="gallery-work-{{ work.id }}" class="app-card overflow-hidden flex flex-col">
+                    <div class="w-full h-80 overflow-hidden bg-slate-100">
+                        <img
+                            src="{{ work.result_image.url }}"
+                            alt="{{ work.gallery_title_display }}"
+                            class="w-full h-full object-cover"
+                        >
                     </div>
 
-                    <div class="space-y-4 border-t border-slate-200 px-4 py-4">
+                    <div class="space-y-4 border-t border-slate-200 px-4 py-4 flex-1">
                         <div class="space-y-2">
                             <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
                                 <span>{{ work.created_at|timezone:"Asia/Yekaterinburg"|date:"d.m.Y H:i" }}</span>
@@ -47,7 +51,9 @@
                             {% endif %}
 
                             {% if work.category == 'jewelry' %}
-                                <a href="{% url 'copy_gallery_work' work.id %}" class="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-100">Скопировать в конструктор</a>
+                                <a href="{% url 'copy_gallery_work' work.id %}" class="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-100">
+                                    Скопировать в конструктор
+                                </a>
                             {% endif %}
                         </div>
 
