@@ -552,8 +552,8 @@ def _compose_accessory(
         expand_size = _odd(max(7, fitted.width // 38))
         blur_radius = max(3, fitted.width // 48)
     else:
-        expand_size = _odd(max(3, placement.width // 140))
-        blur_radius = max(1, max(fitted.width, fitted.height) // 260)
+        expand_size = _odd(max(1, placement.width // 220))
+        blur_radius = max(1, max(fitted.width, fitted.height) // 360)
 
     edit_region = edit_region.filter(ImageFilter.MaxFilter(size=expand_size))
     edit_region = edit_region.filter(ImageFilter.GaussianBlur(radius=blur_radius))
@@ -579,67 +579,83 @@ def _limit_hat_edit_region(alpha: Image.Image, placement: Placement, face_box: F
     alpha_array = np.array(alpha, dtype=np.float32)
     height, width = alpha_array.shape
 
-    # Разрешаем уверенное редактирование сверху головы,
-    # но не даём шапке опускаться на глаза по центру лица.
-    eyebrow_cutoff = int(local_face_y + face_h * 0.14)
-    eyebrow_band = max(10, face_h // 14)
+    # Разрешаем редактирование спереди только в верхней части лба.
+    # Центральный передний край шапки должен остаться выше бровей.
+    front_cutoff = int(local_face_y + face_h * 0.17)
+    front_band = max(8, face_h // 18)
 
     top_fade = np.zeros((height, 1), dtype=np.float32)
     for row in range(height):
-        if row <= eyebrow_cutoff - eyebrow_band:
+        if row <= front_cutoff - front_band:
             value = 1.0
-        elif row >= eyebrow_cutoff + eyebrow_band:
+        elif row >= front_cutoff + front_band:
             value = 0.0
         else:
-            value = float(eyebrow_cutoff + eyebrow_band - row) / float(2 * eyebrow_band)
+            value = float(front_cutoff + front_band - row) / float(2 * front_band)
         top_fade[row, 0] = max(0.0, min(1.0, value))
 
     limited = alpha_array * top_fade
 
-    # Отдельно разрешаем более низкое редактирование только по бокам,
-    # чтобы шапка могла закрывать уши, но не глаза и не центр лица.
+    # Более низкое редактирование разрешаем только узкими боковыми зонами,
+    # чтобы закрывать уши, но не затрагивать глаза и виски.
     side_allow = Image.new("L", (width, height), 0)
     draw = ImageDraw.Draw(side_allow)
 
-    ear_top = max(int(local_face_y + face_h * 0.18), 0)
-    ear_bottom = min(int(local_face_y + face_h * 0.92), height)
+    ear_top = max(int(local_face_y + face_h * 0.30), 0)
+    ear_bottom = min(int(local_face_y + face_h * 0.94), height)
 
     left_box = (
-        max(int(local_face_x - face_w * 0.16), 0),
+        max(int(local_face_x - face_w * 0.12), 0),
         ear_top,
-        min(int(local_face_x + face_w * 0.24), width),
+        min(int(local_face_x + face_w * 0.15), width),
         ear_bottom,
     )
     right_box = (
-        max(int(local_face_x + face_w * 0.76), 0),
+        max(int(local_face_x + face_w * 0.85), 0),
         ear_top,
-        min(int(local_face_x + face_w * 1.16), width),
+        min(int(local_face_x + face_w * 1.12), width),
         ear_bottom,
     )
 
     if left_box[2] > left_box[0] and left_box[3] > left_box[1]:
-        draw.rounded_rectangle(left_box, radius=max(8, face_w // 14), fill=255)
+        draw.rounded_rectangle(left_box, radius=max(8, face_w // 16), fill=255)
     if right_box[2] > right_box[0] and right_box[3] > right_box[1]:
-        draw.rounded_rectangle(right_box, radius=max(8, face_w // 14), fill=255)
+        draw.rounded_rectangle(right_box, radius=max(8, face_w // 16), fill=255)
 
-    side_allow = side_allow.filter(ImageFilter.GaussianBlur(radius=max(6, face_w // 16)))
+    side_allow = side_allow.filter(ImageFilter.GaussianBlur(radius=max(4, face_w // 24)))
     side_allow_array = np.array(side_allow, dtype=np.float32) / 255.0
-
     limited = np.maximum(limited, alpha_array * side_allow_array)
 
-    # Сильная защита центральной части лица: глаза, нос, рот, щеки, подбородок.
+    # Жестко защищаем область глаз и бровей по всей ширине лица.
+    eye_guard = Image.new("L", (width, height), 255)
+    draw = ImageDraw.Draw(eye_guard)
+    eye_left = max(int(local_face_x - face_w * 0.04), 0)
+    eye_top = max(int(local_face_y + face_h * 0.12), 0)
+    eye_right = min(int(local_face_x + face_w * 1.04), width)
+    eye_bottom = min(int(local_face_y + face_h * 0.54), height)
+    if eye_right > eye_left and eye_bottom > eye_top:
+        draw.rounded_rectangle(
+            (eye_left, eye_top, eye_right, eye_bottom),
+            radius=max(10, face_w // 12),
+            fill=0,
+        )
+    eye_guard = eye_guard.filter(ImageFilter.GaussianBlur(radius=max(5, face_w // 22)))
+    eye_guard_array = np.array(eye_guard, dtype=np.float32) / 255.0
+    limited = limited * eye_guard_array
+
+    # Дополнительно защищаем центральную часть лица ниже глаз.
     center_guard = Image.new("L", (width, height), 255)
     draw = ImageDraw.Draw(center_guard)
 
-    protect_left = max(int(local_face_x + face_w * 0.10), 0)
-    protect_top = max(int(local_face_y + face_h * 0.10), 0)
-    protect_right = min(int(local_face_x + face_w * 0.90), width)
+    protect_left = max(int(local_face_x + face_w * 0.12), 0)
+    protect_top = max(int(local_face_y + face_h * 0.22), 0)
+    protect_right = min(int(local_face_x + face_w * 0.88), width)
     protect_bottom = min(int(local_face_y + face_h * 1.04), height)
 
     if protect_right > protect_left and protect_bottom > protect_top:
         draw.ellipse((protect_left, protect_top, protect_right, protect_bottom), fill=0)
 
-    center_guard = center_guard.filter(ImageFilter.GaussianBlur(radius=max(7, face_w // 16)))
+    center_guard = center_guard.filter(ImageFilter.GaussianBlur(radius=max(6, face_w // 18)))
     center_guard_array = np.array(center_guard, dtype=np.float32) / 255.0
 
     limited = (limited * center_guard_array).clip(0, 255).astype("uint8")
@@ -718,19 +734,19 @@ def _build_openai_prompt(*, category: str, summary: str, selections: dict[str, A
 
     if category == "hat":
         prompt_parts.append(
-            "The accessory is a hat. Only the hat itself and the hair or ears directly covered by the hat may change. Keep the eyebrows, eyes, eyelids, under-eye area, cheeks, nose, lips, jawline, neck, skin texture, facial symmetry, and all uncovered facial features exactly unchanged. Never repaint, retouch, regenerate, beautify, distort, or reshape any uncovered part of the person. The hat may cover the ears and nearby hair, but it must never cover the eyes."
+            "The accessory is a hat. Only the hat itself and the hair or ears directly covered by the hat may change. Keep the entire eye region exactly unchanged: eyebrows, eyelids, lashes, under-eye area, eye corners, temples, skin texture around the eyes, and facial symmetry. Also keep the cheeks, nose, lips, jawline, neck, and all uncovered facial features exactly unchanged. Never repaint, retouch, regenerate, beautify, distort, or reshape any uncovered part of the person. The hat may cover the ears and nearby hair, but it must never cover the eyes or alter the periocular area."
         )
         prompt_parts.append(
-            "Match a believable ecommerce try-on of a real knit hat: correct crown volume, realistic knit tension, natural compression over the hairline, and a snug winter fit without floating above the head. The hat should cover the ears naturally when appropriate for this style, but it must stay above the eyebrows in front and the visible face from the eyebrows downward must remain identical to the original photo."
+            "Match a believable ecommerce try-on of a real knit hat: correct crown volume, realistic knit tension, natural compression over the hairline, and a snug winter fit without floating above the head. The hat should cover the ears naturally when appropriate for this style, but the front edge must stay above the eyebrows and the visible face from the eyebrows downward must remain pixel-faithful to the original photo."
         )
         hat_slug = _hat_model_slug(selections)
         if hat_slug == "beanie":
             prompt_parts.append(
-                "Render a classic winter beanie fitted close to the head with a realistic fold cuff, no excess air gap above the crown, and a natural low placement that covers both ears. The front edge of the beanie must stay clearly above the eyebrows and must never cover the eyes. Extend the hat lower only at the sides so the ears are covered like a real warm beanie. Do not change the face, eye shape, facial symmetry, or any uncovered skin."
+                "Render a classic winter beanie fitted close to the head with a realistic fold cuff, no excess air gap above the crown, and a natural low placement that covers both ears. The front edge of the beanie must stay clearly above the eyebrows and must never cover the eyes. Extend the hat lower only at the sides so the ears are covered like a real warm beanie. Keep the entire eye area, eyelids, eyebrows, temples, and all uncovered skin pixel-identical to the original person."
             )
         elif hat_slug == "pompom-beanie":
             prompt_parts.append(
-                "Render a fitted pompom beanie with a natural pompom on top, a neat cuff, and a realistic low placement that covers both ears. The front edge must stay above the eyebrows and must never cover the eyes. Let the side edges extend lower over the ears in a believable winter fit, without floating or sitting too high above the ears. Keep the pompom proportional. Do not change the face, eye alignment, facial proportions, or any uncovered area of the person."
+                "Render a fitted pompom beanie with a natural pompom on top, a neat cuff, and a realistic low placement that covers both ears. The front edge must stay above the eyebrows and must never cover the eyes. Let the side edges extend lower over the ears in a believable winter fit, without floating or sitting too high above the ears. Keep the pompom proportional. Keep the entire eye area, eyelids, eyebrows, temples, and all uncovered facial features pixel-identical to the original person."
             )
     else:
         jewelry_kind = _jewelry_kind(selections)
