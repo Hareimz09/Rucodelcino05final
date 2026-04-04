@@ -57,28 +57,12 @@ class Placement:
 MAX_INPUT_SIDE = 1280
 MIN_OUTPUT_SIZE = 512
 FaceBox = tuple[int, int, int, int]
-FACE_FRAMING_HAT_SLUGS = {"hood-scarf"}
 
+SUPPORTED_HAT_SLUGS = {"beanie", "pompom-beanie"}
 
 HAT_STANDARD_PRESETS: dict[str, dict[str, float]] = {
-    "beanie": {"width_factor": 1.16, "max_height_factor": 0.82, "anchor_factor": 0.18},
-    "pompom-beanie": {"width_factor": 1.22, "max_height_factor": 1.04, "anchor_factor": 0.18},
-    "ushanka": {"width_factor": 1.50, "max_height_factor": 1.14, "anchor_factor": 0.24},
-}
-
-HAT_FACE_FRAMING_PRESETS: dict[str, dict[str, float]] = {
-    "balaclava": {"width_factor": 1.22, "min_height_factor": 1.92, "top_factor": 0.06},
-    "hood-scarf": {"width_factor": 1.34, "min_height_factor": 2.12, "top_factor": 0.14},
-    "cat-hood": {"width_factor": 1.36, "min_height_factor": 1.96, "top_factor": 0.14},
-    "chepchik": {"width_factor": 1.18, "min_height_factor": 1.32, "top_factor": 0.05},
-}
-
-
-FACE_OPENING_PRESETS: dict[str, dict[str, float]] = {
-    "balaclava": {"pad_x": 0.06, "pad_top": 0.34, "pad_bottom": -0.48, "radius_factor": 0.26, "blur_factor": 0.010},
-    "hood-scarf": {"pad_x": 0.12, "pad_top": 0.06, "pad_bottom": 0.20, "radius_factor": 0.36, "blur_factor": 0.018},
-    "cat-hood": {"pad_x": 0.14, "pad_top": 0.08, "pad_bottom": 0.18, "radius_factor": 0.34, "blur_factor": 0.018},
-    "chepchik": {"pad_x": 0.12, "pad_top": 0.02, "pad_bottom": 0.10, "radius_factor": 0.28, "blur_factor": 0.014},
+    "beanie": {"width_factor": 1.24, "max_height_factor": 1.08, "anchor_factor": 0.58},
+    "pompom-beanie": {"width_factor": 1.28, "max_height_factor": 1.22, "anchor_factor": 0.60},
 }
 
 
@@ -201,12 +185,8 @@ def _downscale_image(image: Image.Image, max_side: int) -> Image.Image:
 
 
 def _hat_model_slug(selections: dict[str, Any]) -> str:
-    return str(selections.get("hat_model_slug") or "").strip().lower()
-
-
-
-def _is_face_framing_hat(selections: dict[str, Any]) -> bool:
-    return _hat_model_slug(selections) in FACE_FRAMING_HAT_SLUGS
+    slug = str(selections.get("hat_model_slug") or "").strip().lower()
+    return slug if slug in SUPPORTED_HAT_SLUGS else "beanie"
 
 
 def _jewelry_kind(selections: dict[str, Any]) -> str:
@@ -234,14 +214,15 @@ def _estimate_placement(
     if face_box is None:
         warnings.append("Лицо не найдено автоматически, использована приблизительная посадка.")
         if category == "hat":
-            if _is_face_framing_hat(selections):
-                target_width = int(width * 0.68)
-                target_height = int(target_width * accessory.height / max(accessory.width, 1))
-                y = max(int(height * 0.02), 0)
-            else:
-                target_width = int(width * 0.42)
-                target_height = int(target_width * accessory.height / max(accessory.width, 1))
-                y = max(int(height * 0.03), 0)
+            hat_slug = _hat_model_slug(selections)
+            preset = HAT_STANDARD_PRESETS.get(hat_slug, HAT_STANDARD_PRESETS["beanie"])
+            target_width = int(width * (0.46 if hat_slug == "beanie" else 0.48))
+            target_height = int(target_width * accessory.height / max(accessory.width, 1))
+            max_height = int(height * min(preset["max_height_factor"] * 0.34, 0.44))
+            if target_height > max_height:
+                target_height = max_height
+                target_width = int(target_height * accessory.width / max(accessory.height, 1))
+            y = max(int(height * 0.01), 0)
             x = int((width - target_width) / 2)
             return Placement(x=x, y=y, width=target_width, height=target_height), None, warnings
 
@@ -256,27 +237,20 @@ def _estimate_placement(
 
     if category == "hat":
         hat_slug = _hat_model_slug(selections)
-        if _is_face_framing_hat(selections):
-            preset = HAT_FACE_FRAMING_PRESETS.get(hat_slug, HAT_FACE_FRAMING_PRESETS["hood-scarf"])
-            target_width = int(face_w * preset["width_factor"])
-            target_height = int(max(target_width * accessory_aspect, face_h * preset["min_height_factor"]))
-            x = int(face_x + face_w / 2 - target_width / 2)
-            y = int(face_y - face_h * preset["top_factor"])
-        else:
-            preset = HAT_STANDARD_PRESETS.get(hat_slug, HAT_STANDARD_PRESETS["beanie"])
-            ideal_width = face_w * preset["width_factor"]
-            max_height = face_h * preset["max_height_factor"]
-            target_width = int(ideal_width)
-            target_height = int(target_width * accessory_aspect)
-            if target_height > max_height:
-                target_height = int(max_height)
-                target_width = int(target_height / max(accessory_aspect, 0.01))
+        preset = HAT_STANDARD_PRESETS.get(hat_slug, HAT_STANDARD_PRESETS["beanie"])
+        ideal_width = face_w * preset["width_factor"]
+        max_height = face_h * preset["max_height_factor"]
+        target_width = int(ideal_width)
+        target_height = int(target_width * accessory_aspect)
+        if target_height > max_height:
+            target_height = int(max_height)
+            target_width = int(target_height / max(accessory_aspect, 0.01))
 
-            target_width = max(int(face_w * 1.02), min(target_width, int(face_w * max(preset["width_factor"] + 0.12, 1.32))))
-            target_height = int(target_width * accessory_aspect)
-            bottom_anchor = int(face_y + face_h * preset["anchor_factor"])
-            x = int(face_x + face_w / 2 - target_width / 2)
-            y = int(bottom_anchor - target_height)
+        target_width = max(int(face_w * 1.08), min(target_width, int(face_w * max(preset["width_factor"] + 0.18, 1.42))))
+        target_height = int(target_width * accessory_aspect)
+        bottom_anchor = int(face_y + face_h * preset["anchor_factor"])
+        x = int(face_x + face_w / 2 - target_width / 2)
+        y = int(bottom_anchor - target_height)
     else:
         if jewelry_kind == "earrings":
             target_width = int(face_w * 1.28)
@@ -555,10 +529,6 @@ def _compose_accessory(
 
     alpha = fitted.getchannel("A")
 
-    if category == "hat" and face_box is not None and _is_face_framing_hat(selections):
-        alpha = _create_face_framing_hat_alpha(alpha, placement, face_box, _hat_model_slug(selections))
-        fitted = fitted.copy()
-        fitted.putalpha(alpha)
 
     shadow_alpha = alpha.filter(ImageFilter.GaussianBlur(radius=max(3, fitted.width // 34)))
     shadow = Image.new("RGBA", fitted.size, (22, 28, 45, 0))
@@ -571,7 +541,7 @@ def _compose_accessory(
     result.alpha_composite(fitted, dest=(placement.x, placement.y))
 
     edit_region = alpha
-    if category == "hat" and face_box is not None and not _is_face_framing_hat(selections):
+    if category == "hat" and face_box is not None:
         edit_region = _limit_hat_edit_region(alpha, placement, face_box)
 
     jewelry_kind = _jewelry_kind(selections) if category == "jewelry" else ""
@@ -582,8 +552,8 @@ def _compose_accessory(
         expand_size = _odd(max(7, fitted.width // 38))
         blur_radius = max(3, fitted.width // 48)
     else:
-        expand_size = _odd(max(5, placement.width // 90))
-        blur_radius = max(2, max(fitted.width, fitted.height) // 180)
+        expand_size = _odd(max(3, placement.width // 140))
+        blur_radius = max(1, max(fitted.width, fitted.height) // 260)
 
     edit_region = edit_region.filter(ImageFilter.MaxFilter(size=expand_size))
     edit_region = edit_region.filter(ImageFilter.GaussianBlur(radius=blur_radius))
@@ -598,90 +568,81 @@ def _compose_accessory(
 
 
 
-def _create_face_framing_hat_alpha(alpha: Image.Image, placement: Placement, face_box: FaceBox, hat_slug: str) -> Image.Image:
-    preset = FACE_OPENING_PRESETS.get(hat_slug, FACE_OPENING_PRESETS["hood-scarf"])
-    face_x, face_y, face_w, face_h = face_box
-
-    local_left = int(face_x - placement.x - face_w * preset["pad_x"])
-    local_top = int(face_y - placement.y - face_h * preset["pad_top"])
-    local_right = int(face_x - placement.x + face_w * (1 + preset["pad_x"]))
-    local_bottom = int(face_y - placement.y + face_h * (1 + preset["pad_bottom"]))
-
-    local_left = max(local_left, 0)
-    local_top = max(local_top, 0)
-    local_right = min(local_right, alpha.width)
-    local_bottom = min(local_bottom, alpha.height)
-
-    opening_mask = Image.new("L", alpha.size, 0)
-    draw = ImageDraw.Draw(opening_mask)
-    radius = max(18, int(min(local_right - local_left, local_bottom - local_top) * preset["radius_factor"]))
-
-    if hat_slug == "balaclava":
-        visor_top = int(face_y - placement.y + face_h * 0.34)
-        visor_bottom = int(face_y - placement.y + face_h * 0.52)
-        visor_left = int(face_x - placement.x - face_w * 0.05)
-        visor_right = int(face_x - placement.x + face_w * 1.05)
-        visor = [
-            max(0, visor_left),
-            max(0, visor_top),
-            min(alpha.width, visor_right),
-            min(alpha.height, visor_bottom),
-        ]
-        visor_radius = max(16, int((visor[2] - visor[0]) * 0.18))
-        draw.rounded_rectangle(visor, radius=visor_radius, fill=255)
-    else:
-        draw.rounded_rectangle(
-            [local_left, local_top, local_right, local_bottom],
-            radius=radius,
-            fill=255,
-        )
-        chin_ellipse = [
-            int(local_left + (local_right - local_left) * 0.10),
-            int(local_top + (local_bottom - local_top) * 0.48),
-            int(local_right - (local_right - local_left) * 0.10),
-            int(local_bottom + (local_bottom - local_top) * 0.04),
-        ]
-        draw.ellipse(chin_ellipse, fill=255)
-
-    blur_radius = max(2, int(alpha.width * preset["blur_factor"]))
-    opening_mask = opening_mask.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-
-    if np is not None:
-        base_arr = np.array(alpha, dtype=np.int16)
-        opening_arr = np.array(opening_mask, dtype=np.int16)
-        carved = np.clip(base_arr - opening_arr, 0, 255).astype("uint8")
-        return Image.fromarray(carved, mode="L")
-
-    composite = Image.new("L", alpha.size, 0)
-    composite.paste(alpha, (0, 0))
-    composite.paste(0, (0, 0), opening_mask)
-    return composite
-
-
-
 def _limit_hat_edit_region(alpha: Image.Image, placement: Placement, face_box: FaceBox) -> Image.Image:
     if np is None:
         return alpha
 
     face_x, face_y, face_w, face_h = face_box
-    _ = face_x, face_w  # reserved for future tuning
+    local_face_x = face_x - placement.x
+    local_face_y = face_y - placement.y
 
-    cutoff = int((face_y - placement.y) + face_h * 0.18)
-    band = max(8, face_h // 16)
     alpha_array = np.array(alpha, dtype=np.float32)
-    height = alpha_array.shape[0]
+    height, width = alpha_array.shape
 
-    fade = np.ones((height, 1), dtype=np.float32)
+    # Разрешаем уверенное редактирование сверху головы,
+    # но не даём шапке опускаться на глаза по центру лица.
+    eyebrow_cutoff = int(local_face_y + face_h * 0.14)
+    eyebrow_band = max(10, face_h // 14)
+
+    top_fade = np.zeros((height, 1), dtype=np.float32)
     for row in range(height):
-        if row <= cutoff - band:
+        if row <= eyebrow_cutoff - eyebrow_band:
             value = 1.0
-        elif row >= cutoff + band:
+        elif row >= eyebrow_cutoff + eyebrow_band:
             value = 0.0
         else:
-            value = float(cutoff + band - row) / float(2 * band)
-        fade[row, 0] = max(0.0, min(1.0, value))
+            value = float(eyebrow_cutoff + eyebrow_band - row) / float(2 * eyebrow_band)
+        top_fade[row, 0] = max(0.0, min(1.0, value))
 
-    limited = (alpha_array * fade).clip(0, 255).astype("uint8")
+    limited = alpha_array * top_fade
+
+    # Отдельно разрешаем более низкое редактирование только по бокам,
+    # чтобы шапка могла закрывать уши, но не глаза и не центр лица.
+    side_allow = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(side_allow)
+
+    ear_top = max(int(local_face_y + face_h * 0.18), 0)
+    ear_bottom = min(int(local_face_y + face_h * 0.92), height)
+
+    left_box = (
+        max(int(local_face_x - face_w * 0.16), 0),
+        ear_top,
+        min(int(local_face_x + face_w * 0.24), width),
+        ear_bottom,
+    )
+    right_box = (
+        max(int(local_face_x + face_w * 0.76), 0),
+        ear_top,
+        min(int(local_face_x + face_w * 1.16), width),
+        ear_bottom,
+    )
+
+    if left_box[2] > left_box[0] and left_box[3] > left_box[1]:
+        draw.rounded_rectangle(left_box, radius=max(8, face_w // 14), fill=255)
+    if right_box[2] > right_box[0] and right_box[3] > right_box[1]:
+        draw.rounded_rectangle(right_box, radius=max(8, face_w // 14), fill=255)
+
+    side_allow = side_allow.filter(ImageFilter.GaussianBlur(radius=max(6, face_w // 16)))
+    side_allow_array = np.array(side_allow, dtype=np.float32) / 255.0
+
+    limited = np.maximum(limited, alpha_array * side_allow_array)
+
+    # Сильная защита центральной части лица: глаза, нос, рот, щеки, подбородок.
+    center_guard = Image.new("L", (width, height), 255)
+    draw = ImageDraw.Draw(center_guard)
+
+    protect_left = max(int(local_face_x + face_w * 0.10), 0)
+    protect_top = max(int(local_face_y + face_h * 0.10), 0)
+    protect_right = min(int(local_face_x + face_w * 0.90), width)
+    protect_bottom = min(int(local_face_y + face_h * 1.04), height)
+
+    if protect_right > protect_left and protect_bottom > protect_top:
+        draw.ellipse((protect_left, protect_top, protect_right, protect_bottom), fill=0)
+
+    center_guard = center_guard.filter(ImageFilter.GaussianBlur(radius=max(7, face_w // 16)))
+    center_guard_array = np.array(center_guard, dtype=np.float32) / 255.0
+
+    limited = (limited * center_guard_array).clip(0, 255).astype("uint8")
     return Image.fromarray(limited, mode="L")
 
 
@@ -757,46 +718,20 @@ def _build_openai_prompt(*, category: str, summary: str, selections: dict[str, A
 
     if category == "hat":
         prompt_parts.append(
-            "The accessory is a hat. Keep the forehead, eyebrows, eyes, cheeks, nose, mouth, jaw, and visible hair unchanged. Never repaint or distort facial features. The hat must sit naturally on the head and must not cover the eyes."
+            "The accessory is a hat. Only the hat itself and the hair or ears directly covered by the hat may change. Keep the eyebrows, eyes, eyelids, under-eye area, cheeks, nose, lips, jawline, neck, skin texture, facial symmetry, and all uncovered facial features exactly unchanged. Never repaint, retouch, regenerate, beautify, distort, or reshape any uncovered part of the person. The hat may cover the ears and nearby hair, but it must never cover the eyes."
         )
-        if _is_face_framing_hat(selections):
+        prompt_parts.append(
+            "Match a believable ecommerce try-on of a real knit hat: correct crown volume, realistic knit tension, natural compression over the hairline, and a snug winter fit without floating above the head. The hat should cover the ears naturally when appropriate for this style, but it must stay above the eyebrows in front and the visible face from the eyebrows downward must remain identical to the original photo."
+        )
+        hat_slug = _hat_model_slug(selections)
+        if hat_slug == "beanie":
             prompt_parts.append(
-                "This is a face-framing knit hat. The face opening must stay clean and symmetrical around the forehead, cheeks, jaw, and chin. The person's face must remain exactly the same and must never be regenerated. Only the knit around the face opening may be refined. Preserve stray hair at the opening edge and keep natural soft contact shadows."
+                "Render a classic winter beanie fitted close to the head with a realistic fold cuff, no excess air gap above the crown, and a natural low placement that covers both ears. The front edge of the beanie must stay clearly above the eyebrows and must never cover the eyes. Extend the hat lower only at the sides so the ears are covered like a real warm beanie. Do not change the face, eye shape, facial symmetry, or any uncovered skin."
             )
-            hat_slug = _hat_model_slug(selections)
-            if hat_slug == "balaclava":
-                prompt_parts.append(
-                    "Render a real knit balaclava that covers the forehead, cheeks, nose bridge, mouth, chin, and neck. Leave only a clean horizontal eye opening. Do not expose the nose or mouth. Keep the eye opening centered and believable like a real winter balaclava."
-                )
-            elif hat_slug == "hood-scarf":
-                prompt_parts.append(
-                    "Render a soft hood-scarf with realistic drape around the face and neck. The hood opening must stay rounded and proportional, and the scarf tails must fall naturally instead of forming stiff flat shapes."
-                )
-            elif hat_slug == "cat-hood":
-                prompt_parts.append(
-                    "Render a soft knit hood with subtle cat ears. The face opening must remain clean and rounded, with the ears integrated naturally into the hood silhouette."
-                )
-            elif hat_slug == "chepchik":
-                prompt_parts.append(
-                    "Render a knitted bonnet with ties under the chin. It must frame the head softly, cover the ears naturally, and keep the face fully unchanged."
-                )
-        else:
+        elif hat_slug == "pompom-beanie":
             prompt_parts.append(
-                "Match a believable ecommerce try-on of a real knit hat: correct crown volume, believable fold or ear coverage, realistic knit tension, and natural compression over the hairline without floating above the head."
+                "Render a fitted pompom beanie with a natural pompom on top, a neat cuff, and a realistic low placement that covers both ears. The front edge must stay above the eyebrows and must never cover the eyes. Let the side edges extend lower over the ears in a believable winter fit, without floating or sitting too high above the ears. Keep the pompom proportional. Do not change the face, eye alignment, facial proportions, or any uncovered area of the person."
             )
-            hat_slug = _hat_model_slug(selections)
-            if hat_slug == "beanie":
-                prompt_parts.append(
-                    "Render a classic beanie fitted close to the head with a realistic fold cuff and no excess air gap above the crown."
-                )
-            elif hat_slug == "pompom-beanie":
-                prompt_parts.append(
-                    "Render a fitted beanie with a natural pompom on top. Keep the cuff neat and the pompom proportional."
-                )
-            elif hat_slug == "ushanka":
-                prompt_parts.append(
-                    "Render a real ushanka with soft ear flaps and believable volume around the temples and ears. It must look like a real winter hat, not a flat mask."
-                )
     else:
         jewelry_kind = _jewelry_kind(selections)
         if jewelry_kind == "earrings":

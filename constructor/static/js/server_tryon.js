@@ -1,4 +1,16 @@
 (function () {
+    const FALLBACK_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'heic', 'heif', 'avif'];
+    const TARGET_BLOB_SIZE_BYTES = 4.5 * 1024 * 1024;
+    const MAX_DATA_URL_LENGTH = 7.5 * 1024 * 1024;
+    const SAFE_RAW_FILE_SIZE_BYTES = 4.5 * 1024 * 1024;
+    const COMPRESSION_STEPS = [
+        { maxSide: 1600, quality: 0.86 },
+        { maxSide: 1400, quality: 0.82 },
+        { maxSide: 1280, quality: 0.8 },
+        { maxSide: 1080, quality: 0.76 },
+        { maxSide: 960, quality: 0.72 },
+    ];
+
     function getCookie(name) {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -23,8 +35,6 @@
         element.className += ` ${toneClasses[tone] || toneClasses.idle}`;
     }
 
-    const FALLBACK_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'heic', 'heif', 'avif'];
-
     function fileExtension(file) {
         const name = file?.name || '';
         const parts = name.split('.');
@@ -46,6 +56,27 @@
         });
     }
 
+    function blobToDataUrl(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Не удалось подготовить изображение к отправке.'));
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    function canvasToBlob(canvas, type, quality) {
+        return new Promise((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    reject(new Error('Не удалось сжать изображение.'));
+                    return;
+                }
+                resolve(blob);
+            }, type, quality);
+        });
+    }
+
     function loadImageElement(src) {
         return new Promise((resolve, reject) => {
             const image = new Image();
@@ -53,6 +84,50 @@
             image.onerror = () => reject(new Error('Не удалось открыть изображение в браузере.'));
             image.src = src;
         });
+    }
+
+    function calculateScaledSize(width, height, maxSide) {
+        if (!width || !height) {
+            throw new Error('Не удалось определить размер изображения.');
+        }
+
+        const scale = Math.min(1, maxSide / Math.max(width, height));
+        return {
+            width: Math.max(1, Math.round(width * scale)),
+            height: Math.max(1, Math.round(height * scale)),
+        };
+    }
+
+    async function compressLoadedImage(image) {
+        let bestDataUrl = '';
+
+        for (const step of COMPRESSION_STEPS) {
+            const { width, height } = calculateScaledSize(image.naturalWidth, image.naturalHeight, step.maxSide);
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const context = canvas.getContext('2d', { alpha: false });
+            if (!context) {
+                throw new Error('Не удалось подготовить изображение к отправке.');
+            }
+
+            context.drawImage(image, 0, 0, width, height);
+
+            const blob = await canvasToBlob(canvas, 'image/jpeg', step.quality);
+            const dataUrl = await blobToDataUrl(blob);
+            bestDataUrl = dataUrl;
+
+            if (blob.size <= TARGET_BLOB_SIZE_BYTES && dataUrl.length <= MAX_DATA_URL_LENGTH) {
+                return dataUrl;
+            }
+        }
+
+        if (bestDataUrl && bestDataUrl.length <= MAX_DATA_URL_LENGTH) {
+            return bestDataUrl;
+        }
+
+        throw new Error('Фото слишком большое. Выберите снимок поменьше или отправьте JPG/PNG.');
     }
 
     async function fileToDataUrl(file) {
@@ -67,21 +142,17 @@
         const objectUrl = URL.createObjectURL(file);
         try {
             const image = await loadImageElement(objectUrl);
-            if (!image.naturalWidth || !image.naturalHeight) {
-                throw new Error('Не удалось определить размер изображения.');
+            return await compressLoadedImage(image);
+        } catch (error) {
+            const rawDataUrl = await readFileAsDataUrl(file).catch(() => {
+                throw new Error('Не удалось прочитать фото. Попробуйте другой файл.');
+            });
+
+            if (file.size > SAFE_RAW_FILE_SIZE_BYTES || String(rawDataUrl || '').length > MAX_DATA_URL_LENGTH) {
+                throw new Error('Фото слишком большое или этот формат не удалось безопасно обработать в браузере. Лучше выбрать снимок поменьше либо JPG/PNG.');
             }
 
-            const canvas = document.createElement('canvas');
-            canvas.width = image.naturalWidth;
-            canvas.height = image.naturalHeight;
-            const context = canvas.getContext('2d', { alpha: false });
-            if (!context) {
-                throw new Error('Не удалось подготовить изображение к отправке.');
-            }
-            context.drawImage(image, 0, 0);
-            return canvas.toDataURL('image/jpeg', 0.92);
-        } catch (error) {
-            return readFileAsDataUrl(file);
+            return rawDataUrl;
         } finally {
             URL.revokeObjectURL(objectUrl);
         }
@@ -100,18 +171,58 @@
         imageEl.dataset.isPlaceholder = isPlaceholder ? 'true' : 'false';
     }
 
-
     async function postTryOn(endpoint, payload) {
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
-            },
-            body: JSON.stringify(payload),
-        });
+        let response;
 
-        const data = await response.json().catch(() => ({ ok: false, error: 'Сервер вернул некорректный ответ.' }));
+        try {
+            response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify(payload),
+            });
+        } catch (networkError) {
+            const error = new Error('Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз.');
+            error.cause = networkError;
+            throw error;
+        }
+
+        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+        let data = null;
+
+        if (contentType.includes('application/json')) {
+            data = await response.json().catch(() => null);
+        } else {
+            const text = await response.text().catch(() => '');
+            let message = `Сервер вернул неожиданный ответ (HTTP ${response.status}).`;
+
+            if (response.status === 413) {
+                message = 'Фото оказалось слишком большим для сервера. Выберите снимок поменьше.';
+            } else if (response.status === 502 || response.status === 503 || response.status === 504) {
+                message = 'Сервер временно недоступен или не успел обработать фото. Попробуйте ещё раз.';
+            } else if (response.status === 403) {
+                message = 'Сервер отклонил запрос. Обновите страницу и попробуйте снова.';
+            } else if (text) {
+                const shortText = text.replace(/\s+/g, ' ').trim().slice(0, 160);
+                if (shortText) {
+                    message += ` ${shortText}`;
+                }
+            }
+
+            const error = new Error(message);
+            error.status = response.status;
+            throw error;
+        }
+
+        if (!data) {
+            const error = new Error('Сервер вернул пустой или повреждённый JSON-ответ.');
+            error.status = response.status;
+            throw error;
+        }
+
         if (!response.ok || !data.ok) {
             const errorCodeText = data.error_code ? ` Код ошибки: ${data.error_code}.` : '';
             const error = new Error((data.error || 'Не удалось выполнить AI-примерку.') + errorCodeText);
@@ -119,6 +230,7 @@
             error.status = response.status;
             throw error;
         }
+
         return data;
     }
 
